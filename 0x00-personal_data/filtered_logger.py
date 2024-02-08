@@ -24,14 +24,15 @@ class RedactingFormatter(logging.Formatter):
 
     def __init__(self, fields: List[str]):
         super().__init__(
-            environ.get("LOG_FORMAT",
-            "[HOLBERTON] %(name)s %(levelname)s %(asctime)-15s: %(message)s"))
+            environ.get("LOG_FORMAT", "[HOLBERTON] %(name)s " +
+                        "%(levelname)s %(asctime)-15s: %(message)s"))
         self.fields = fields
 
     def format(self, record: logging.LogRecord) -> str:
         """ Filters incoming records """
         return filter_datum(self.fields, environ.get("REDACTION", "***"),
-                            super().format(record), environ.get("SEPARATOR", ";"))
+                            super().format(record),
+                            environ.get("SEPARATOR", ";"))
 
 
 def get_logger() -> logging.Logger:
@@ -64,7 +65,7 @@ def main():
             field_names = [i[0] for i in cur_db.description]
             log = get_logger()
             for r in cur_db:
-                str_r = "".join(f"{f}={str(l)}; " for l,
+                str_r = "".join(f"{f}={str(li)}; " for li,
                                 f in zip(r, field_names))
                 log.info(str_r.strip())
     except mc.Error as e:

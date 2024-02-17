@@ -57,13 +57,3 @@ class User(Base):
             return "{}".format(self.last_name)
         else:
             return "{} {}".format(self.first_name, self.last_name)
-
-    def to_dict(self):
-        return {
-            "id": str(self.id),
-            "email": self.email,
-            "first_name": self.first_name,
-            "last_name": self.last_name,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-        }

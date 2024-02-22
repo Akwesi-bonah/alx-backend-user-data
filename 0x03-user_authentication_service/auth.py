@@ -8,9 +8,10 @@ from uuid import uuid4
 from sqlalchemy.orm.exc import NoResultFound
 
 
-def _hash_password(password: str) -> str:
+def _hash_password(password: str) -> bytes:
     """returns a salted hash of the input password"""
-    return bcrypt.hashpw(password=password.encode(), salt=bcrypt.gensalt())
+    return bcrypt.hashpw(password=password.encode(),
+                         salt=bcrypt.gensalt())
 
 
 def _generate_uuid() -> str:

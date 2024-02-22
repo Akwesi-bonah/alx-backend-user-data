@@ -1,61 +1,39 @@
 #!/usr/bin/env python3
-"""Basic Flask app """
-from flask import Flask, jsonify, request, abort, Response
+"""a basic Flask app.
+"""
+from flask import Flask, jsonify, abort, request, redirect, Response
 from auth import Auth
-from typing import Tuple
+from typing import Optional
+
 
 app = Flask(__name__)
-app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 AUTH = Auth()
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 
 
-@app.route('/', methods=["GET"])
+@app.route('/', methods=['GET'])
 def index() -> Response:
-    """Return greetings"""
+    """index to display hello"""
     return jsonify({"message": "Bienvenue"})
 
 
-@app.route('/users', methods=["POST"])
-def create_user() -> Tuple['Response', 'int']:
-    """Create a new user"""
-
+@app.route('/users', methods=['POST'])
+def register_user() -> Response | str:
+    """to record into db new user"""
     try:
         email = request.form['email']
         password = request.form['password']
     except KeyError:
-        abort(400, "Missing")
-
+        abort(400)
     try:
         AUTH.register_user(email, password)
-        return jsonify({"email": email, "message": "user created"}), 200
     except ValueError:
         return jsonify({"message": "email already registered"}), 400
-
-
-@app.route('/login', methods=['POST'])
-def login() -> Response:
-    data = request.form
-    if 'email' not in data:
-        return jsonify({"message": "email is required"}), 400
-    if 'password' not in data:
-        return jsonify('{"message": "password is required"}'), 400
-    else:
-        email = data['email']
-        password = data['password']
-        if AUTH.valid_login(email=email, password=password) is False:
-            return abort(401, "Invalid credentials")
-        else:
-            session_id = AUTH.create_session(email=email)
-            response = jsonify({
-                'email': email,
-                "message": "logged in successfully"
-            })
-            response.set_cookie('session_id', session_id)
-            return response
+    return jsonify({"email": email, "message": "user created"})
 
 
 @app.route('/sessions', methods=['POST'], strict_slashes=False)
-def login() -> str:
+def login() -> str | Response | None:
     """respond to the POST create a new session for the user"""
     form_data = request.form
     if "email" not in form_data:
@@ -74,6 +52,58 @@ def login() -> str:
                 "message": "logged in"})
             response.set_cookie('session_id', session_id)
             return response
+
+
+@app.route('/sessions', methods=['DELETE'], strict_slashes=False)
+def log_out() -> Response:
+    """user with the requested session ID get the session destroyed"""
+    session_id = request.cookies.get('session_id')
+    user = AUTH.get_user_from_session_id(session_id)
+    if not user:
+        abort(403)
+    AUTH.destroy_session(user.id)
+    return redirect('/')
+
+
+@app.route('/profile', methods=['GET'], strict_slashes=False)
+def profile() -> Response:
+    """find the user respond with a 200 HTTP status"""
+    session_id = request.cookies.get('session_id')
+    user = AUTH.get_user_from_session_id(session_id)
+    if user:
+        return jsonify({"email": user.email}), 200
+    else:
+        abort(403)
+
+
+@app.route('/reset_password', methods=['POST'], strict_slashes=False)
+def get_reset_password_token() -> Response:
+    """respond to the POST /reset_password to reset password"""
+    try:
+        email = request.form["email"]
+    except KeyError:
+        abort(403)
+    try:
+        reset_token = AUTH.get_reset_password_token(email)
+    except ValueError:
+        abort(403)
+    return jsonify({"email": email, "reset_token": reset_token}), 200
+
+
+@app.route('/reset_password', methods=['PUT'], strict_slashes=False)
+def update_password() -> Response:
+    """respond to the PUT /reset_password to update password"""
+    try:
+        email = request.form["email"]
+        reset_token = request.form["reset_token"]
+        new_password = request.form["new_password"]
+    except KeyError:
+        abort(400)
+    try:
+        AUTH.update_password(reset_token, new_password)
+    except ValueError:
+        abort(403)
+    return jsonify({"email": email, "message": "Password updated"}), 200
 
 
 if __name__ == "__main__":

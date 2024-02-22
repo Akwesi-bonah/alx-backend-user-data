@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
-""" hashing passwords """
-import uuid
-
+"""method that takes in a password string arguments and returns bytes.
+"""
 import bcrypt
 from db import DB
 from user import User
-from sqlalchemy.exc import NoResultFound
+from uuid import uuid4
+from sqlalchemy.orm.exc import NoResultFound
+from typing import Optional
 
 
 def _hash_password(password: str) -> bytes:
-    """returns a salted, hashed password"""
-    return bcrypt.hashpw(password.encode('utf-8'),
-                         bcrypt.gensalt())
+    """returns a salted hash of the input password"""
+    return bcrypt.hashpw(password=password.encode(), salt=bcrypt.gensalt())
 
 
 def _generate_uuid() -> str:
-    """returns a random new UUID"""
-    return str(uuid.uuid4())
+    """return a string representation of a new UUID"""
+    return str(uuid4())
 
 
 class Auth:
@@ -27,26 +27,28 @@ class Auth:
         self._db = DB()
 
     def register_user(self, email: str, password: str) -> User:
-        """registers a user and returns the User object"""
+        """return the User object"""
         try:
-            user = self._db.find_user_by(email=email)
-            if user:
-                raise ValueError(f"User {email} already exists")
+            self._db.find_user_by(email=email)
         except NoResultFound:
-            return self._db.add_user(email, _hash_password(password))
+            encrypt = _hash_password(password=password)
+            return self._db.add_user(email=email,
+                                     hashed_password=encrypt)
+        else:
+            raise ValueError("User {} already exists".format(email))
 
     def valid_login(self, email: str, password: str) -> bool:
-        """checks if the provided credentials are correct"""
+        """locating the user by email If exists return True"""
         try:
             user = self._db.find_user_by(email=email)
         except NoResultFound:
             return False
         else:
-            return bcrypt.checkpw(password=password.encode('utf-8'),
+            return bcrypt.checkpw(password=password.encode(),
                                   hashed_password=user.hashed_password)
 
-    def create_session(self, email: str) -> str:
-        """ returns the session id for a given email """
+    def create_session(self, email: str) -> str | None:
+        """returns the session ID as a string"""
         try:
             user = self._db.find_user_by(email=email)
         except NoResultFound:
@@ -55,8 +57,8 @@ class Auth:
             user.session_id = _generate_uuid()
             return user.session_id
 
-    def get_user_from_session_id(self, session_id: str) -> str:
-        """Takes a single session_id & return the corresponding user."""
+    def get_user_from_session_id(self, session_id: str) -> User | None:
+        """takes a single session_id & return the corresponding user."""
         try:
             user = self._db.find_user_by(session_id=session_id)
         except NoResultFound:
@@ -67,9 +69,29 @@ class Auth:
             return user
 
     def destroy_session(self, user_id: int) -> None:
-        """updates the corresponding user’s session ID to None """
+        """updates the corresponding user’s session ID to None"""
         try:
             user = self._db.find_user_by(id=user_id)
         except NoResultFound:
             return None
         user.session_id = None
+
+    def get_reset_password_token(self, email: str) -> str:
+        """update the user’s reset_token database field"""
+        try:
+            user = self._db.find_user_by(email=email)
+        except NoResultFound:
+            raise ValueError
+        user.reset_token = _generate_uuid()
+        return user.reset_token
+
+    def update_password(self, reset_token: str, password: str) -> None:
+        """hash the password and update the user’s hashed_password"""
+        try:
+            user = self._db.find_user_by(reset_token=reset_token)
+        except NoResultFound:
+            raise ValueError
+        else:
+            user.hashed_password = _hash_password(password=password)
+            user.reset_token = None
+            return None

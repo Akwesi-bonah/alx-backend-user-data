@@ -1,0 +1,4 @@
+.venv
+.idea
+a.db
+a.db-journal

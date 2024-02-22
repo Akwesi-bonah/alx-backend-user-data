@@ -3,7 +3,6 @@
 """
 from flask import Flask, jsonify, abort, request, redirect, Response
 from auth import Auth
-from typing import Optional
 
 
 app = Flask(__name__)
@@ -18,7 +17,7 @@ def index() -> Response:
 
 
 @app.route('/users', methods=['POST'])
-def register_user() -> Response | str:
+def register_user() -> str | Response:
     """to record into db new user"""
     try:
         email = request.form['email']
@@ -26,14 +25,14 @@ def register_user() -> Response | str:
     except KeyError:
         abort(400)
     try:
-        AUTH.register_user(email, password)
+        user = AUTH.register_user(email, password)
     except ValueError:
         return jsonify({"message": "email already registered"}), 400
     return jsonify({"email": email, "message": "user created"})
 
 
 @app.route('/sessions', methods=['POST'], strict_slashes=False)
-def login() -> str | Response | None:
+def login() -> str | Response:
     """respond to the POST create a new session for the user"""
     form_data = request.form
     if "email" not in form_data:
@@ -55,7 +54,7 @@ def login() -> str | Response | None:
 
 
 @app.route('/sessions', methods=['DELETE'], strict_slashes=False)
-def log_out() -> Response:
+def log_out() -> None | Response:
     """user with the requested session ID get the session destroyed"""
     session_id = request.cookies.get('session_id')
     user = AUTH.get_user_from_session_id(session_id)
@@ -66,7 +65,7 @@ def log_out() -> Response:
 
 
 @app.route('/profile', methods=['GET'], strict_slashes=False)
-def profile() -> Response:
+def profile() -> str:
     """find the user respond with a 200 HTTP status"""
     session_id = request.cookies.get('session_id')
     user = AUTH.get_user_from_session_id(session_id)
@@ -77,7 +76,7 @@ def profile() -> Response:
 
 
 @app.route('/reset_password', methods=['POST'], strict_slashes=False)
-def get_reset_password_token() -> Response:
+def get_reset_password_token() -> str:
     """respond to the POST /reset_password to reset password"""
     try:
         email = request.form["email"]
@@ -91,7 +90,7 @@ def get_reset_password_token() -> Response:
 
 
 @app.route('/reset_password', methods=['PUT'], strict_slashes=False)
-def update_password() -> Response:
+def update_password() -> str:
     """respond to the PUT /reset_password to update password"""
     try:
         email = request.form["email"]

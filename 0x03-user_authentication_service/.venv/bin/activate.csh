@@ -8,7 +8,7 @@ alias deactivate 'test $?_OLD_VIRTUAL_PATH != 0 && setenv PATH "$_OLD_VIRTUAL_PA
 # Unset irrelevant variables.
 deactivate nondestructive
 
-setenv VIRTUAL_ENV "/home/nightwolf/Desktop/alx_project/alx-backend-user-data/0x03-user_authentication_service/.venv"
+setenv VIRTUAL_ENV "/home/nightwolf/Desktop/test/alx-backend-user-data/0x03-user_authentication_service/.venv"
 
 set _OLD_VIRTUAL_PATH="$PATH"
 setenv PATH "$VIRTUAL_ENV/bin:$PATH"

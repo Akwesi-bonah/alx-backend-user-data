@@ -6,10 +6,9 @@ from db import DB
 from user import User
 from uuid import uuid4
 from sqlalchemy.orm.exc import NoResultFound
-from typing import Optional
 
 
-def _hash_password(password: str) -> bytes:
+def _hash_password(password: str) -> str:
     """returns a salted hash of the input password"""
     return bcrypt.hashpw(password=password.encode(), salt=bcrypt.gensalt())
 
@@ -32,8 +31,7 @@ class Auth:
             self._db.find_user_by(email=email)
         except NoResultFound:
             encrypt = _hash_password(password=password)
-            return self._db.add_user(email=email,
-                                     hashed_password=encrypt)
+            return self._db.add_user(email=email, hashed_password=encrypt)
         else:
             raise ValueError("User {} already exists".format(email))
 
@@ -47,7 +45,7 @@ class Auth:
             return bcrypt.checkpw(password=password.encode(),
                                   hashed_password=user.hashed_password)
 
-    def create_session(self, email: str) -> str | None:
+    def create_session(self, email: str) -> str:
         """returns the session ID as a string"""
         try:
             user = self._db.find_user_by(email=email)
@@ -57,7 +55,7 @@ class Auth:
             user.session_id = _generate_uuid()
             return user.session_id
 
-    def get_user_from_session_id(self, session_id: str) -> User | None:
+    def get_user_from_session_id(self, session_id: str) -> str | None:
         """takes a single session_id & return the corresponding user."""
         try:
             user = self._db.find_user_by(session_id=session_id)
@@ -94,4 +92,3 @@ class Auth:
         else:
             user.hashed_password = _hash_password(password=password)
             user.reset_token = None
-            return None

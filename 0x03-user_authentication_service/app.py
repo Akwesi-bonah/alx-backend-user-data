@@ -10,9 +10,13 @@ AUTH = Auth()
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 
 
-@app.route('/', methods=['GET'])
-def index() -> Response:
-    """index to display hello"""
+@app.route('/')
+def home() -> Response:
+    """Root index of the app
+    
+    return:
+            Response: A JSON response containg a dictionary
+    """
     return jsonify({"message": "Bienvenue"}), 200
 
 

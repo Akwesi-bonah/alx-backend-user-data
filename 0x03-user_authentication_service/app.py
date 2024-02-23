@@ -3,25 +3,23 @@
 """
 from flask import Flask, jsonify, abort, request, redirect, Response
 from auth import Auth
-
+from typing import Union
 
 app = Flask(__name__)
 AUTH = Auth()
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 
 
-@app.route('/')
+@app.route('/', methods=['GET'])
 def home() -> Response:
-    """Root index of the app
-    
-    return:
-            Response: A JSON response containg a dictionary
-    """
-    return jsonify({"message": "Bienvenue"}), 200
+    """index to display greetings"""
+    form_data = {"message": "Bienvenue"}
+
+    return jsonify(form_data), 200
 
 
 @app.route('/users', methods=['POST'])
-def register_user() -> str | Response:
+def register_user() -> Union[str, Response]:
     """to record into db new user"""
     try:
         email = request.form['email']
@@ -36,7 +34,7 @@ def register_user() -> str | Response:
 
 
 @app.route('/sessions', methods=['POST'], strict_slashes=False)
-def login() -> str | Response:
+def login() -> Union[str, Response]:
     """respond to the POST create a new session for the user"""
     form_data = request.form
     if "email" not in form_data:
@@ -58,7 +56,7 @@ def login() -> str | Response:
 
 
 @app.route('/sessions', methods=['DELETE'], strict_slashes=False)
-def log_out() -> None | Response:
+def log_out() -> Union[None, Response]:
     """user with the requested session ID get the session destroyed"""
     session_id = request.cookies.get('session_id')
     user = AUTH.get_user_from_session_id(session_id)
